@@ -18,6 +18,10 @@ type ContextHandler struct {
 	slog.Handler
 }
 
+func NewContextHandler(h slog.Handler) slog.Handler {
+	return &ContextHandler{h}
+}
+
 // Handle adds contextual attributes to the Record before calling the underlying
 // handler
 func (h ContextHandler) Handle(ctx context.Context, r slog.Record) error {

@@ -8,13 +8,12 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/millionsmonitoring/millionsgocore/env"
-	"github.com/millionsmonitoring/millionsgocore/logger"
 	slogecho "github.com/samber/slog-echo"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 )
 
 func InitServer(ctx context.Context, appName string) *echo.Echo {
-	logger.Info(ctx, "starting the server ", appName)
+	slog.InfoContext(ctx, "starting the server ", "app_name", appName)
 	server := echo.New()
 	if env.IsProduction() {
 		server.Logger.SetLevel(log.INFO)
@@ -29,8 +28,8 @@ func InitServer(ctx context.Context, appName string) *echo.Echo {
 	server.Use(slogecho.New(slog.Default()))
 	server.Use(otelecho.Middleware(appName))
 	server.Use(middleware.BodyDump(func(ctx echo.Context, b1, b2 []byte) {
-		logger.Info(ctx.Request().Context(), "request", "method", ctx.Request().Method, "uri", ctx.Request().RequestURI, "body", b1)
-		logger.Info(ctx.Request().Context(), "response", "method", ctx.Request().Method, "uri", ctx.Request().RequestURI, "body", b2)
+		slog.InfoContext(ctx.Request().Context(), "request", "method", ctx.Request().Method, "uri", ctx.Request().RequestURI, "body", b1)
+		slog.InfoContext(ctx.Request().Context(), "response", "method", ctx.Request().Method, "uri", ctx.Request().RequestURI, "body", b2)
 	}))
 	return server
 }

@@ -1,33 +1,80 @@
 package logger
 
 import (
-	"context"
+	"io"
 	"log/slog"
 	"os"
+
+	"github.com/millionsmonitoring/millionsgocore/env"
 )
 
-func Info(ctx context.Context, msg string, args ...any) {
-	slog.InfoContext(ctx, msg, args...)
+type LogOptions struct {
+	RemoveKeys []string   // remove keys from log
+	Level      slog.Level // log level
+	Writer     io.Writer  // log writing destination
+	AddSource  bool
 }
 
-func Error(ctx context.Context, msg string, args ...any) {
-	slog.ErrorContext(ctx, msg, args...)
+type Option func(o *LogOptions)
+
+func Init(opts ...Option) {
+
+	// assign options given
+	logOptions := newDefaultLogOptions()
+	for _, opt := range opts {
+		opt(&logOptions)
+	}
+
+	// init logger, set level, set format
+	textHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:       logOptions.Level,
+		ReplaceAttr: removeKeys(logOptions.RemoveKeys...),
+		AddSource:   logOptions.AddSource,
+	})
+	contextHandler := NewContextHandler(textHandler)
+	slog.SetDefault(slog.New(contextHandler))
 }
 
-func XError(ctx context.Context, msg string, args ...any) {
-	slog.ErrorContext(ctx, msg, args...)
-	// add a sentry or some monitor in the application
+func WithBlacklistKeys(keys ...string) Option {
+	return func(o *LogOptions) {
+		o.RemoveKeys = keys
+	}
 }
 
-func Warn(ctx context.Context, msg string, args ...any) {
-	slog.WarnContext(ctx, msg, args...)
+func WithWriter(writer io.Writer) Option {
+	return func(o *LogOptions) {
+		o.Writer = writer
+	}
 }
 
-func Debug(ctx context.Context, msg string, args ...any) {
-	slog.DebugContext(ctx, msg, args...)
+func DisableSource() Option {
+	return func(o *LogOptions) {
+		o.AddSource = false
+	}
 }
 
-func Fatal(ctx context.Context, msg string, args ...any) {
-	slog.ErrorContext(ctx, msg, args...)
-	os.Exit(1)
+func newDefaultLogOptions() LogOptions {
+	level := slog.LevelDebug
+	if env.IsProduction() {
+		level = slog.LevelInfo
+	}
+	return LogOptions{
+		RemoveKeys: []string{},
+		Level:      level,
+		Writer:     os.Stdout,
+		AddSource:  true,
+	}
+}
+
+// removeKeys returns a function suitable for HandlerOptions.ReplaceAttr
+// that removes all Attrs with the given keys.
+func removeKeys(keys ...string) func([]string, slog.Attr) slog.Attr {
+	return func(groups []string, a slog.Attr) slog.Attr {
+		for _, k := range keys {
+			if a.Key == k {
+				return slog.Attr{}
+			}
+		}
+		return replaceErrorAttr(groups, a)
+	}
 }

@@ -25,6 +25,18 @@ func ReplaceAttr(_ []string, a slog.Attr) slog.Attr {
 	return a
 }
 
+func replaceErrorAttr(_ []string, a slog.Attr) slog.Attr {
+	switch a.Value.Kind() {
+	case slog.KindAny:
+		switch v := a.Value.Any().(type) {
+		case error:
+			a.Value = fmtErr(v)
+		}
+	}
+
+	return a
+}
+
 // marshalStack extracts stack frames from the error
 func marshalStack(err error) []stackFrame {
 	trace := xerrors.StackTrace(err)
