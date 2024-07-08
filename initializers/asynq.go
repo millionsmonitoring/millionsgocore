@@ -36,9 +36,9 @@ func InitAsynq() (*asynqwrapper.TaskClient, error) {
 			slog.Info("Job %s with started at %v", task.Type(), time.Now())
 		},
 		PostEnqueueFunc: func(info *asynq.TaskInfo, err error) {
-			slog.Info("Job %s with id %s ended at %v", info.Type, info.ID, time.Now())
+			slog.Info("Job %s with id %s ended at %v", info.Type, info.ID, "time", time.Now())
 			if err != nil {
-				slog.Error("Job %s with id %s ended at %v with error %v", info.Type, info.ID, time.Now(), err)
+				slog.Error("Job %s with id %s ended at %v with error %v", info.Type, info.ID, "time", time.Now(), "error", err)
 			}
 		},
 	}
