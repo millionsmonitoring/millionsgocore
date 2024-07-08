@@ -14,12 +14,24 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type DBConfig interface {
+	defaultConfig() any
+}
+
 type PGDBOptions struct {
 	DNS string `json:"dns" yaml:"dns"`
 }
 
+func (PGDBOptions) defaultConfig() any {
+	return PGDBOptions{
+		DNS: "postgres://postgres:@localhost:5432/test?sslmode=disable",
+	}
+}
+
+var _ DBConfig = (*PGDBOptions)(nil)
+
 func InitPGBun(ctx context.Context) *bun.DB {
-	options, err := checkDatabaseConfigPresence()
+	options, err := checkDatabaseConfigPresence[PGDBOptions]()
 	if err != nil {
 		panic(fmt.Sprintf("error in parsing db config: %s", err))
 	}
@@ -27,16 +39,21 @@ func InitPGBun(ctx context.Context) *bun.DB {
 	if err := sqldb.PingContext(ctx); err != nil {
 		panic(fmt.Sprintf("error in connecting to db: %s", err))
 	}
-	return bun.NewDB(sqldb, pgdialect.New())
+	db := bun.NewDB(sqldb, pgdialect.New())
+	if err := db.Ping(); err != nil {
+		panic(fmt.Sprintf("error pinging to database %s", err))
+	}
+	return db
 }
 
 // Check if database.yml exists, if not create it with default config
-func checkDatabaseConfigPresence() (PGDBOptions, error) {
-	var options PGDBOptions
+func checkDatabaseConfigPresence[T DBConfig]() (T, error) {
+	var options T
 	configPath := filepath.Join("configs", "database.yml")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// File doesn't exist, create it with default config
-		defaultConfig := defaultConfig()
+
+		defaultConfig := options.defaultConfig()
 
 		data, err := yaml.Marshal(&defaultConfig)
 		if err != nil {
@@ -66,10 +83,4 @@ func checkDatabaseConfigPresence() (PGDBOptions, error) {
 		return options, err
 	}
 	return options, nil
-}
-
-func defaultConfig() PGDBOptions {
-	return PGDBOptions{
-		DNS: "postgres://postgres:@localhost:5432/test?sslmode=disable",
-	}
 }
