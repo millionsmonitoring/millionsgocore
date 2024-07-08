@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/millionsmonitoring/millionsgocore/helpers"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/mysqldialect"
 )
@@ -14,14 +15,14 @@ type MySqlDBOptions struct {
 	URL string `json:"url" yaml:"url"`
 }
 
-func (MySqlDBOptions) defaultConfig() any {
+func (MySqlDBOptions) DefaultConfig() any {
 	return MySqlDBOptions{
 		URL: "root:pass@/test",
 	}
 }
 
 func InitMysqlBun(ctx context.Context) *bun.DB {
-	options, err := checkDatabaseConfigPresence[MySqlDBOptions]()
+	options, err := helpers.CheckOrParseConfig[MySqlDBOptions]("database.yml")
 	if err != nil {
 		panic(fmt.Sprintf("error in parsing db config: %s", err))
 	}

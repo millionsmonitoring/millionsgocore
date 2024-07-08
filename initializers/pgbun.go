@@ -3,35 +3,26 @@ package initializers
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 
+	"github.com/millionsmonitoring/millionsgocore/helpers"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
-	"gopkg.in/yaml.v2"
 )
-
-type DBConfig interface {
-	defaultConfig() any
-}
 
 type PGDBOptions struct {
 	DNS string `json:"dns" yaml:"dns"`
 }
 
-func (PGDBOptions) defaultConfig() any {
+func (PGDBOptions) DefaultConfig() any {
 	return PGDBOptions{
 		DNS: "postgres://postgres:@localhost:5432/test?sslmode=disable",
 	}
 }
 
-var _ DBConfig = (*PGDBOptions)(nil)
-
 func InitPGBun(ctx context.Context) *bun.DB {
-	options, err := checkDatabaseConfigPresence[PGDBOptions]()
+	options, err := helpers.CheckOrParseConfig[PGDBOptions]("database.yml")
 	if err != nil {
 		panic(fmt.Sprintf("error in parsing db config: %s", err))
 	}
@@ -44,43 +35,4 @@ func InitPGBun(ctx context.Context) *bun.DB {
 		panic(fmt.Sprintf("error pinging to database %s", err))
 	}
 	return db
-}
-
-// Check if database.yml exists, if not create it with default config
-func checkDatabaseConfigPresence[T DBConfig]() (T, error) {
-	var options T
-	configPath := filepath.Join("configs", "database.yml")
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		// File doesn't exist, create it with default config
-
-		defaultConfig := options.defaultConfig()
-
-		data, err := yaml.Marshal(&defaultConfig)
-		if err != nil {
-			return options, err
-		}
-
-		err = os.MkdirAll(filepath.Dir(configPath), 0755)
-		if err != nil {
-			return options, err
-		}
-
-		err = os.WriteFile(configPath, data, 0644)
-		if err != nil {
-			return options, err
-		}
-
-		return options, errors.New("database.yml created in configs folder. Please update with your database details")
-	}
-
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return options, err
-	}
-
-	err = yaml.Unmarshal(data, &options)
-	if err != nil {
-		return options, err
-	}
-	return options, nil
 }
