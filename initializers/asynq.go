@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/millionsmonitoring/millionsgocore/configs"
+	"github.com/millionsmonitoring/millionsgocore/env"
 	"github.com/millionsmonitoring/millionsgocore/utils/timing"
 	"github.com/millionsmonitoring/millionsgocore/wrappers/asynqwrapper"
 
@@ -43,7 +43,7 @@ func InitAsynq() (*asynqwrapper.TaskClient, error) {
 		},
 	}
 	// configs
-	if configs.IsDevelopment() {
+	if env.IsDevelopment() {
 		asynqConfigs.LogLevel = asynq.DebugLevel
 		opts.LogLevel = asynq.DebugLevel
 		conn.TLSConfig = nil
