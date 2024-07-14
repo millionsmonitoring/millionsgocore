@@ -17,7 +17,7 @@ type MySqlDBOptions struct {
 
 func (MySqlDBOptions) DefaultConfig() any {
 	return MySqlDBOptions{
-		URL: "root:pass@/test",
+		URL: "mysql://username:password@tcp(host:$port)/database?parseTime=true",
 	}
 }
 

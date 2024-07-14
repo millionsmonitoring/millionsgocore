@@ -17,7 +17,7 @@ type PGDBOptions struct {
 
 func (PGDBOptions) DefaultConfig() any {
 	return PGDBOptions{
-		DNS: "postgres://postgres:@localhost:5432/test?sslmode=disable",
+		DNS: "postgres://username:password@host:port/database?sslmode=disable",
 	}
 }
 
